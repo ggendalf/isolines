@@ -22,6 +22,8 @@
 
 #include <boost/json.hpp>
 
+#include <QPointF>
+
 namespace geo {
 
 using coord_type							= double;
@@ -97,8 +99,13 @@ public:
 	inline bool is_null() const noexcept { return std::isnan(x()) || std::isnan(y()); }
 
 	inline real_type angle(point2d const& p_) const	{
-		return !is_null() && !p_.is_null() ? boost::geometry::azimuth<boost_point2d, boost_point2d>(*this, p_) : .0;
-	}
+		return !is_null() && !p_.is_null() ? boost::geometry::azimuth<boost_point2d, boost_point2d>(*this, p_) : .0; }
+
+	constexpr point2d(QT_PREPEND_NAMESPACE(QPointF) const& qpt_) noexcept :
+		boost_point2d(static_cast<coord_type>(qpt_.x()), static_cast<coord_type>(qpt_.y())) {};
+
+	constexpr inline operator QT_PREPEND_NAMESPACE(QPointF)() const
+	{ return QT_PREPEND_NAMESPACE(QPointF)(static_cast<qreal>(x()), static_cast<qreal>(y())); }
 
 };
 

@@ -96,7 +96,8 @@ MainWindow::MainWindow(QWidget *parent)
 	, use_holes(true)
 	, with_areas(false)
 	, ui(new Ui::MainWindow)
-	, mscale(125000.f)
+	, m_mapScale(125000.f)
+	, m_mapCenter(3100.f, 5350.f)
 {
 	ui->setupUi(this);
 
@@ -231,21 +232,19 @@ void MainWindow::paintEvent(QPaintEvent *event)
 		}
 		if(!(bool)m_boundpath) {m_boundpath = create_geometry(m_bound); }
 
-		float scaleX = static_cast<float>(physicalDpiX()) / (0.0254f * get_scale());
-		float scaleY = static_cast<float>(physicalDpiY()) / (0.0254f * get_scale());
+		float scaleX = static_cast<float>(physicalDpiX()) / (0.0254f * m_mapScale);
+		float scaleY = static_cast<float>(physicalDpiY()) / (0.0254f * m_mapScale);
 
 		QPointF center(qbound.center());
-
 		QMatrix m(scaleX, 0, 0, scaleY, center.x(), center.y());
-		QPointF mc(m.map(-get_center()));
+		QPointF mc(m.map(-m_mapCenter));
 
-		QMatrix matrix(m.m11(), m.m12(), m.m21(), m.m22(), mc.x(), mc.y());
+		m_mapMatrix.setMatrix(m.m11(), m.m12(), m.m21(), m.m22(), mc.x(), mc.y());
 
 		float width = 1.27 / scaleX;
 
-		painter.setWorldMatrix(matrix);
+		painter.setWorldMatrix(m_mapMatrix);
 		painter.begin(painter.device());
-
 
 		painter.strokePath(*m_boundpath, QPen(QColor(55, 00, 00, 125), width, Qt::DashLine));
 		for(auto const& p : m_ringspaths)
@@ -280,8 +279,8 @@ void MainWindow::paintEvent(QPaintEvent *event)
 			{
 				if((bool)path)
 				{
-					painter.fillPath(*path, QBrush(QColor(00, 255, 00, 255), Qt::CrossPattern));
-					painter.strokePath(*path, QPen(QColor(00, 106, 00, 200), width, Qt::DotLine));
+					painter.fillPath(*path, QBrush(QColor(00, 106, 00, 125), Qt::CrossPattern));
+					painter.strokePath(*path, QPen(QColor(00, 106, 00, 125), width, Qt::DotLine));
 				}
 			}
 		}
@@ -297,14 +296,43 @@ void MainWindow::wheelEvent(QWheelEvent *event)
 		int delta = event->delta();
 		if(delta != 0)
 		{
-			double scale = get_scale();
-			mscale = delta >= 0 ? scale * 1.1 : scale / 1.1;
+			m_mapScale = delta >= 0 ? m_mapScale * 1.1 : m_mapScale / 1.1;
 
 			repaint();
 			event->accept();
 		}
 	}
 }
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *)
+{
+	unsetCursor();
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event)
+{
+	if(Qt::RightButton == event->button())
+	{
+		m_move_start = (event->localPos() * m_mapMatrix.inverted());
+
+		setCursor(QCursor(Qt::ClosedHandCursor));
+	}
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+	if(Qt::RightButton & event->buttons())
+	{
+		QPointF move_end = (event->localPos() * m_mapMatrix.inverted());
+		QPointF delta = move_end - m_move_start;
+
+		m_mapCenter = m_mapCenter - delta;
+
+		repaint();
+		event->accept();
+	}
+}
+
 
 void MainWindow::on_actWithAreas_triggered(bool checked)
 {

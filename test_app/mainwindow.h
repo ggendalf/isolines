@@ -24,16 +24,19 @@ public:
 
 private:
 	Ui::MainWindow		*ui;
-	float				mscale;
-protected:
-	void paintEvent(QPaintEvent *event) override final;
-	void wheelEvent(QWheelEvent *event) override final;
+	qreal				m_mapScale;
+	QMatrix				m_mapMatrix;
+	QPointF				m_mapCenter;
 
+	QPointF				m_move_start;
+protected:
+	void paintEvent(QPaintEvent *event) override;
+	void wheelEvent(QWheelEvent *event) override;
+	void mouseReleaseEvent(QMouseEvent *event) override;
+	void mousePressEvent(QMouseEvent *event) override;
+	void mouseMoveEvent(QMouseEvent *event) override;
 
 	geo::algorithm::isolines::result_map	res;
-
-	float get_scale() const { return mscale; }
-	QPointF get_center() const { return QPointF(3100.f, 5350.f);}
 
 	geo::algorithm::isolines::value_matrix	m_matrix;
 	geo::box2d								m_bound;
